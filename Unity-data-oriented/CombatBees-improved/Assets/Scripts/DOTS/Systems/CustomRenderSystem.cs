@@ -4,6 +4,7 @@ using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
+using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
@@ -48,13 +49,14 @@ namespace Systems
         
         protected override void OnCreate()
         {
+            return;
             _computeShader = RenderSystemBridge.Instance.ComputeShader;
             _renderMaterial = RenderSystemBridge.Instance.RenderMaterial;
             _mesh = CreateQuad();
             _ltwHandle = GetComponentTypeHandle<LocalToWorld>();
 
             // Boundary surrounding the meshes we will be drawing.  Used for occlusion.
-            _bounds = new Bounds(Camera.main.transform.position, Vector3.one * (10 + 1));
+            _bounds = new Bounds(Vector3.zero, DataBurst.FieldSize);
 
             int maxNumBees = Data.beeStartCount;
             _team1Buffer = InitializeBuffers(_mesh, maxNumBees);
@@ -64,6 +66,7 @@ namespace Systems
         
         protected override void OnDestroy()
         {
+            return;
             Object.Destroy(_mesh);
             _team1Buffer.Dispose();
             _team2Buffer.Dispose();
@@ -156,7 +159,7 @@ namespace Systems
             
             public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
             {
-                var src = (LocalToWorld*)chunk.GetNativeArray(Ltw).GetUnsafeReadOnlyPtr();
+                var src = (LocalToWorld*)chunk.GetNativeArray(ref Ltw).GetUnsafeReadOnlyPtr();
                 var dst = (Properties*)Properties.GetUnsafePtr();
                 int n = chunk.Count;
                 int offset = unfilteredChunkIndex * ChunkCapacity;
@@ -169,19 +172,23 @@ namespace Systems
         
         protected override void OnUpdate()
         {
+            return;
             _ltwHandle.Update(this);
-            new CollectData
+
+            var d = Dependency;
+            JobHandle j1 = new CollectData
             {
                 Ltw = _ltwHandle,
                 Properties = _team1Buffer.CpuProperties,
                 //ChunkCapacity = 
-            }.ScheduleParallel(_team1Bees, Dependency);
-            new CollectData
-                        {
-                            Ltw = _ltwHandle,
-                            Properties = _team1Buffer.CpuProperties,
-                            //ChunkCapacity = 
-                        }.ScheduleParallel(_team1Bees, Dependency);
+            }.ScheduleParallel(_team1Bees, d);
+            JobHandle j2 = new CollectData
+            {
+                Ltw = _ltwHandle,
+                Properties = _team2Buffer.CpuProperties,
+                //ChunkCapacity = 
+            }.ScheduleParallel(_team2Bees, d);
+            Dependency = JobHandle.CombineDependencies(j1, j2);
             
             RenderTeamBuffer(_team1Buffer);
             RenderTeamBuffer(_team2Buffer);

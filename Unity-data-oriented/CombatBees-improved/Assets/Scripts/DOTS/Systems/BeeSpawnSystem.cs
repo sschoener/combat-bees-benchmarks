@@ -1,5 +1,4 @@
 using Unity.Entities;
-using Unity.Transforms;
 using Unity.Burst;
 using Unity.Core;
 
@@ -9,22 +8,11 @@ namespace DOTS
     [UpdateBefore(typeof(DeadBeesSystem))]
     public partial struct BeeSpawnSystem : ISystem
     {
-        private EntityQuery team1Alive;
-        private EntityQuery team2Alive;
-        private EntityQuery team1Dead;
-        private EntityQuery team2Dead;
+        private EntityQuery _teamTotal;
 
         public void OnCreate(ref SystemState state)
         {
-
-            team1Alive = state.EntityManager.CreateEntityQuery(typeof(Team), typeof(Alive));
-            team1Alive.AddSharedComponentFilter<Team>(1);
-            team2Alive = state.EntityManager.CreateEntityQuery(typeof(Team), typeof(Alive));
-            team2Alive.AddSharedComponentFilter<Team>(2);
-            team1Dead = state.EntityManager.CreateEntityQuery(typeof(Team), typeof(Dead));
-            team1Dead.AddSharedComponentFilter<Team>(1);
-            team2Dead = state.EntityManager.CreateEntityQuery(typeof(Team), typeof(Dead));
-            team2Dead.AddSharedComponentFilter<Team>(2);
+            _teamTotal = state.GetEntityQuery(typeof(Team));
         }
 
         public void OnDestroy(ref SystemState state) { }
@@ -34,14 +22,10 @@ namespace DOTS
         {
             EntityCommandBuffer.ParallelWriter ecb = GetEntityCommandBuffer(ref state);
 
-            int team1AliveCount = team1Alive.CalculateEntityCount();
-            int team1DeadCount = team1Dead.CalculateEntityCount();
-            int team1BeeCount = team1AliveCount + team1DeadCount;
-
-
-            int team2AliveCount = team2Alive.CalculateEntityCount();
-            int team2DeadCount = team2Dead.CalculateEntityCount();
-            int team2BeeCount = team2AliveCount + team2DeadCount;
+            _teamTotal.SetSharedComponentFilter(new Team { Value = 1 });
+            int team1BeeCount = _teamTotal.CalculateEntityCountWithoutFiltering();
+            _teamTotal.SetSharedComponentFilter(new Team { Value = 2 });
+            int team2BeeCount = _teamTotal.CalculateEntityCount();
 
             // Creates a new instance of the job, assigns the necessary data, and schedules the job in parallel.
             new ProcessSpawnerJob
@@ -61,7 +45,6 @@ namespace DOTS
             return ecb.AsParallelWriter();
         }
 
-
         [BurstCompile]
         public partial struct ProcessSpawnerJob : IJobEntity
         {
@@ -76,7 +59,6 @@ namespace DOTS
             // component data query.
             private void Execute([ChunkIndexInQuery] int chunkIndex, ref Spawner spawner)
             {
-
                 int beesToSpawnTeam1 = Data.beeStartCount / 2 - team1BeeCount;
 
                 for (int i = 0; i < beesToSpawnTeam1; i++)
@@ -84,11 +66,8 @@ namespace DOTS
                     Entity newEntity = Ecb.Instantiate(chunkIndex, spawner.BlueBee);
                     var rand = new RandomComponent();
                     rand.generator.InitState((uint)((i + 1) * (timeData.ElapsedTime + 1.0) * 57131));
-                    var transform = LocalTransform.FromPosition(spawner.Team1SpawnPosition);
-                    transform.Scale = rand.generator.NextFloat(Data.minBeeSize, Data.maxBeeSize);
-                    Ecb.SetComponent(chunkIndex, newEntity, transform);
                     Ecb.AddComponent(chunkIndex, newEntity, new Velocity());
-                    Ecb.AddComponent(chunkIndex, newEntity, new Alive());
+                    Ecb.AddComponent(chunkIndex, newEntity, new DeadTimer { time = 1});
                     Ecb.AddComponent(chunkIndex, newEntity, new Target());
                     Ecb.AddComponent(chunkIndex, newEntity, rand);
                     Ecb.AddSharedComponent(chunkIndex, newEntity, new Team { Value = 1 });
@@ -102,11 +81,8 @@ namespace DOTS
                     Entity newEntity = Ecb.Instantiate(chunkIndex, spawner.YellowBee);
                     var rand = new RandomComponent();
                     rand.generator.InitState((uint)((i + 1) * (timeData.ElapsedTime + 1.0) * 33223));
-                    var transform = LocalTransform.FromPosition(spawner.Team2SpawnPosition);
-                    transform.Scale = rand.generator.NextFloat(Data.minBeeSize, Data.maxBeeSize);
-                    Ecb.SetComponent(chunkIndex, newEntity, transform);
                     Ecb.AddComponent(chunkIndex, newEntity, new Velocity());
-                    Ecb.AddComponent(chunkIndex, newEntity, new Alive());
+                    Ecb.AddComponent(chunkIndex, newEntity, new DeadTimer { time = 1 });
                     Ecb.AddComponent(chunkIndex, newEntity, new Target());
                     Ecb.AddComponent(chunkIndex, newEntity, rand);
                     Ecb.AddSharedComponent(chunkIndex, newEntity, new Team { Value = 2 });

@@ -1,9 +1,6 @@
 using Unity.Entities;
-using Unity.Transforms;
 using Unity.Burst;
-using UnityEngine;
 using Unity.Collections;
-using Unity.Mathematics;
 using Unity.Jobs;
 
 namespace DOTS
@@ -19,9 +16,9 @@ namespace DOTS
 
         public void OnCreate(ref SystemState state)
         {
-            team1Alive = state.EntityManager.CreateEntityQuery(typeof(Team), typeof(Alive));
+            team1Alive = state.EntityManager.CreateEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithDisabled<DeadTimer>().WithAll<Team>());
             team1Alive.AddSharedComponentFilter<Team>(1);
-            team2Alive = state.EntityManager.CreateEntityQuery(typeof(Team), typeof(Alive));
+            team2Alive = state.EntityManager.CreateEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithDisabled<DeadTimer>().WithAll<Team>());
             team2Alive.AddSharedComponentFilter<Team>(2);
         }
 
@@ -35,10 +32,9 @@ namespace DOTS
 
             state.Dependency = new TargetJob
             {
-                deltaTime = state.WorldUnmanaged.Time.DeltaTime,
                 team1Enemies = team2Entities.AsDeferredJobArray(),
                 team2Enemies = team1Entities.AsDeferredJobArray()
-            }.ScheduleParallel(JobHandle.CombineDependencies(dep1, dep2));
+            }.ScheduleParallel(JobHandle.CombineDependencies(dep1, dep2, state.Dependency));
 
             team1Entities.Dispose(state.Dependency);
             team2Entities.Dispose(state.Dependency);
@@ -48,11 +44,10 @@ namespace DOTS
         [BurstCompile]
         public partial struct TargetJob : IJobEntity
         {
-            public float deltaTime;
             [ReadOnly] public NativeArray<Entity> team1Enemies;
             [ReadOnly] public NativeArray<Entity> team2Enemies;
 
-            private void Execute(ref RandomComponent random, ref Target target, in Team team, in Alive _)
+            private void Execute(ref RandomComponent random, ref Target target, in Team team)
             {
                 if (target.enemyTarget == Entity.Null)
                 {

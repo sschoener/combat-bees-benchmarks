@@ -20,9 +20,10 @@ namespace DOTS
 
         public void OnCreate(ref SystemState state)
         {
-            team1Bees = state.EntityManager.CreateEntityQuery(typeof(Team), typeof(LocalToWorld), typeof(Velocity), typeof(RandomComponent), typeof(Alive));
+            team1Bees = state.EntityManager.CreateEntityQuery(
+                typeof(Team), typeof(LocalToWorld), typeof(Velocity), typeof(RandomComponent), ComponentType.Exclude<DeadTimer>());
             team1Bees.AddSharedComponentFilter<Team>(1);
-            team2Bees = state.EntityManager.CreateEntityQuery(typeof(Team), typeof(LocalToWorld), typeof(Velocity), typeof(RandomComponent), typeof(Alive));
+            team2Bees = state.EntityManager.CreateEntityQuery(typeof(Team), typeof(LocalToWorld), typeof(Velocity), typeof(RandomComponent), ComponentType.Exclude<DeadTimer>());
             team2Bees.AddSharedComponentFilter<Team>(2);
         }
 
@@ -57,7 +58,7 @@ namespace DOTS
             // This example queries for all Spawner components and uses `ref` to specify that the operation
             // requires read and write access. Unity processes `Execute` for each entity that matches the
             // component data query.
-            private void Execute(ref LocalTransform transform, ref Velocity velocity, ref RandomComponent random, in Team team, in Alive _)
+            private void Execute(ref LocalTransform transform, ref Velocity velocity, ref RandomComponent random, in Team team)
             {
                 float3 randomVector;
                 randomVector.x = random.generator.NextFloat() * 2.0f - 1.0f;
