@@ -6,11 +6,23 @@ namespace Systems
     {
         public Material RenderMaterial;
         public ComputeShader ComputeShader;
-        public static RenderSystemBridge Instance;
+        public Mesh Mesh;
 
-        private void Awake()
+        private static bool s_HasSearchedForInstance;
+        private static RenderSystemBridge s_Instance;
+
+        public static RenderSystemBridge Instance
         {
-            Instance = this;
+            get
+            {
+                if (!s_HasSearchedForInstance)
+                {
+                    s_Instance = FindAnyObjectByType<RenderSystemBridge>();
+                    s_HasSearchedForInstance = true;
+                }
+
+                return s_Instance;
+            }
         }
     }
 }

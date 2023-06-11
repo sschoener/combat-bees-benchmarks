@@ -13,6 +13,7 @@ namespace DOTS
         public void OnCreate(ref SystemState state)
         {
             _teamTotal = state.GetEntityQuery(typeof(Team));
+            
         }
 
         public void OnDestroy(ref SystemState state) { }
@@ -26,6 +27,7 @@ namespace DOTS
             int team1BeeCount = _teamTotal.CalculateEntityCountWithoutFiltering();
             _teamTotal.SetSharedComponentFilter(new Team { Value = 2 });
             int team2BeeCount = _teamTotal.CalculateEntityCount();
+            
 
             // Creates a new instance of the job, assigns the necessary data, and schedules the job in parallel.
             new ProcessSpawnerJob
@@ -71,6 +73,7 @@ namespace DOTS
                     Ecb.AddComponent(chunkIndex, newEntity, new Target());
                     Ecb.AddComponent(chunkIndex, newEntity, rand);
                     Ecb.AddSharedComponent(chunkIndex, newEntity, new Team { Value = 1 });
+                    Ecb.RemoveComponent<LinkedEntityGroup>(chunkIndex, newEntity);
                 }
 
 
@@ -86,6 +89,7 @@ namespace DOTS
                     Ecb.AddComponent(chunkIndex, newEntity, new Target());
                     Ecb.AddComponent(chunkIndex, newEntity, rand);
                     Ecb.AddSharedComponent(chunkIndex, newEntity, new Team { Value = 2 });
+                    Ecb.RemoveComponent<LinkedEntityGroup>(chunkIndex, newEntity);
                 }
             }
         }
