@@ -5,7 +5,6 @@ namespace Systems
     public class RenderSystemBridge : MonoBehaviour
     {
         public Material RenderMaterial;
-        public ComputeShader ComputeShader;
         public Mesh Mesh;
 
         private static bool s_HasSearchedForInstance;

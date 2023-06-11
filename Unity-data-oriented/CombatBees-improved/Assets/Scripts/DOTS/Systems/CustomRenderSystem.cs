@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading;
-using TMPro.EditorUtilities;
 using Unity.Burst;
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
@@ -8,9 +7,7 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
-//using Unity.Rendering;
 using Unity.Transforms;
-using UnityEditor.Experimental;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -22,7 +19,6 @@ namespace Systems
     {
         public Mesh Mesh;
         public Bounds Bounds;
-        private ComputeShader _computeShader;
         public Material RenderMaterial1;
         public Material RenderMaterial2;
         
@@ -79,7 +75,6 @@ namespace Systems
             {
                 return false;
             }
-            _computeShader = instance.ComputeShader;
             RenderMaterial1 = new Material(instance.RenderMaterial);
             RenderMaterial2 = new Material(instance.RenderMaterial);
             //Mesh = CreateQuad();
@@ -97,7 +92,6 @@ namespace Systems
             Team1Buffer = InitializeBuffers(ShaderArgs, WriteCount);
             Team2Buffer = InitializeBuffers(ShaderArgs, WriteCount);
 
-            //World.GetExistingSystemManaged<EntitiesGraphicsSystem>().Enabled = false;
             Inited = true;
             Debug.Log("render init");
             return true;
